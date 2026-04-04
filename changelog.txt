@@ -1,0 +1,18 @@
+[v2]
+- Default range increased to 3000
+- Auto UI launch when game starts
+- PID-based log files (separate logs per client)
+- Sequential port allocation (5560, 5561, ...)
+- Patcher now works from client directory
+
+[v1]
+- Initial release
+- Proxy DLL with MetinQueue system
+- Auto metin targeting (closest 3)
+- Kill detection and auto queue refill
+- Auto pickup (PickAllCloseItems)
+- Web UI with minimap, queue display, GM alert
+- Player and GM detection on minimap
+- Position auto-calibration
+- F3 key to select client for UI
+- Focus protection to prevent AFK kick

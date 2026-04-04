@@ -16,7 +16,6 @@ echo ===================================
 echo.
 
 :: Create directories if missing
-if not exist "%CLIENT_DIR%" mkdir "%CLIENT_DIR%"
 if not exist "%UI_DIR%" mkdir "%UI_DIR%"
 
 :: ==========================================
@@ -31,15 +30,14 @@ echo [*] Checking for updates...
 curl -s -L -o "%TEMP%\lirin_remote_ver.txt" "%REPO_BASE%/lirin_version.txt" 2>nul
 if not exist "%TEMP%\lirin_remote_ver.txt" (
     echo [!] Could not reach update server.
-    echo [*] Launching game...
     goto :LAUNCH
 )
 
 set /p REMOTE_VER=<"%TEMP%\lirin_remote_ver.txt"
 del /F "%TEMP%\lirin_remote_ver.txt" >nul 2>&1
 
-echo     Local version:  %LOCAL_VER%
-echo     Remote version: %REMOTE_VER%
+echo     Local version:  v%LOCAL_VER%
+echo     Remote version: v%REMOTE_VER%
 
 if "%LOCAL_VER%"=="%REMOTE_VER%" (
     echo.
@@ -49,13 +47,46 @@ if "%LOCAL_VER%"=="%REMOTE_VER%" (
 
 echo.
 echo [*] Update available: v%LOCAL_VER% -^> v%REMOTE_VER%
+echo.
 
 :: ==========================================
-:: PHASE 2: Kill Game if Running
+:: PHASE 2: Show Changelog
+:: ==========================================
+echo [*] Downloading changelog...
+curl -s -L -o "%TEMP%\lirin_changelog.txt" "%REPO_BASE%/changelog.txt" 2>nul
+if exist "%TEMP%\lirin_changelog.txt" (
+    echo.
+    echo ------- CHANGELOG -------
+    :: Show entries newer than local version
+    set "SHOW=0"
+    for /f "usebackq delims=" %%L in ("%TEMP%\lirin_changelog.txt") do (
+        set "LINE=%%L"
+        :: Check if line is a version header [vN]
+        echo %%L | findstr /r "\[v[0-9]*\]" >nul 2>&1
+        if !errorlevel!==0 (
+            :: Extract version number
+            for /f "tokens=1 delims=]" %%V in ("%%L") do (
+                set "HEADER_VER=%%V"
+                set "HEADER_VER=!HEADER_VER:[v=!"
+                if !HEADER_VER! GTR !LOCAL_VER! (
+                    set "SHOW=1"
+                ) else (
+                    set "SHOW=0"
+                )
+            )
+        )
+        if !SHOW!==1 echo   %%L
+    )
+    echo -------------------------
+    del /F "%TEMP%\lirin_changelog.txt" >nul 2>&1
+)
+echo.
+
+:: ==========================================
+:: PHASE 3: Kill Game if Running
 :: ==========================================
 tasklist /FI "IMAGENAME eq %GAME_EXE%" 2>nul | findstr /i "%GAME_EXE%" >nul
 if %errorlevel%==0 (
-    echo.
     echo [!] %GAME_EXE% is running. Closing...
     taskkill /F /IM "%GAME_EXE%" >nul 2>&1
     timeout /t 3 /nobreak >nul
@@ -65,28 +96,27 @@ if %errorlevel%==0 (
 taskkill /F /FI "WINDOWTITLE eq LirinUI*" >nul 2>&1
 
 :: ==========================================
-:: PHASE 3: Download Files
+:: PHASE 4: Download Files
 :: ==========================================
-echo.
 echo [*] Downloading updates...
 
 :: VERSION.dll
 echo     [1/3] VERSION.dll...
-if exist "%CLIENT_DIR%\VERSION.dll" (
-    del /F "%CLIENT_DIR%\VERSION.dll" >nul 2>&1
-    if exist "%CLIENT_DIR%\VERSION.dll" (
+if exist "%CLIENT_DIR%VERSION.dll" (
+    del /F "%CLIENT_DIR%VERSION.dll" >nul 2>&1
+    if exist "%CLIENT_DIR%VERSION.dll" (
         timeout /t 2 /nobreak >nul
-        del /F "%CLIENT_DIR%\VERSION.dll" >nul 2>&1
+        del /F "%CLIENT_DIR%VERSION.dll" >nul 2>&1
     )
-    if exist "%CLIENT_DIR%\VERSION.dll" (
+    if exist "%CLIENT_DIR%VERSION.dll" (
         echo     [FAIL] Could not delete VERSION.dll - file is locked!
         echo     Close the game and try again.
         pause
         exit /b 1
     )
 )
-curl -s -L -o "%CLIENT_DIR%\VERSION.dll" "%REPO_BASE%/dist/VERSION.dll"
-for %%A in ("%CLIENT_DIR%\VERSION.dll") do if %%~zA LSS 1024 (
+curl -s -L -o "%CLIENT_DIR%VERSION.dll" "%REPO_BASE%/dist/VERSION.dll"
+for %%A in ("%CLIENT_DIR%VERSION.dll") do if %%~zA LSS 1024 (
     echo     [FAIL] Download failed or file too small!
     pause
     exit /b 1
@@ -114,13 +144,13 @@ echo     Update complete! v%REMOTE_VER%
 echo ===================================
 
 :: ==========================================
-:: PHASE 4: Launch
+:: PHASE 5: Launch
 :: ==========================================
 :LAUNCH
 echo.
 choice /M "Launch game?" /C YN /D Y /T 5
 if errorlevel 2 goto :END
-if exist "%CLIENT_DIR%\%GAME_EXE%" (
+if exist "%CLIENT_DIR%%GAME_EXE%" (
     echo [*] Starting %GAME_EXE%...
     cd /d "%CLIENT_DIR%"
     start "" "%GAME_EXE%"
