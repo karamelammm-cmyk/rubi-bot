@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LIRIN BOT</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg-dark: #0d0d1a;
+    --bg-panel: #141428;
+    --bg-card: #1a1a2e;
+    --bg-input: #22223a;
+    --border: #2a2a4a;
+    --text: #e0e0e0;
+    --text-dim: #888;
+    --green: #00e676;
+    --red: #ff1744;
+    --blue: #448aff;
+    --yellow: #ffd600;
+    --orange: #ff9100;
+    --magenta: #e040fb;
+    --white: #ffffff;
+  }
+
+  body {
+    font-family: 'Segoe UI', Consolas, monospace;
+    background: var(--bg-dark);
+    color: var(--text);
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  .container {
+    display: flex;
+    height: 100vh;
+    gap: 0;
+  }
+
+  /* LEFT PANEL - MINIMAP */
+  .left-panel {
+    flex: 0 0 70%;
+    display: flex;
+    flex-direction: column;
+    padding: 12px;
+    background: var(--bg-dark);
+  }
+
+  .map-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    padding: 0 4px;
+  }
+
+  .map-header h2 {
+    font-size: 14px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+  }
+
+  .map-coords {
+    font-size: 12px;
+    color: var(--text-dim);
+    font-family: Consolas, monospace;
+  }
+
+  .zoom-controls {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .zoom-controls button {
+    width: 26px; height: 26px;
+    background: var(--bg-input);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+  }
+  .zoom-controls button:hover { background: var(--border); }
+
+  .canvas-wrap {
+    flex: 1;
+    position: relative;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  #minimap {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  #tooltip {
+    position: absolute;
+    display: none;
+    background: rgba(0,0,0,0.85);
+    color: var(--text);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    pointer-events: none;
+    white-space: nowrap;
+    border: 1px solid var(--border);
+    z-index: 10;
+  }
+
+  /* RIGHT PANEL - CONTROLS */
+  .right-panel {
+    flex: 0 0 30%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    background: var(--bg-panel);
+    border-left: 1px solid var(--border);
+    overflow-y: auto;
+  }
+
+  .panel-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+  }
+
+  .brand-title {
+    font-size: 18px;
+    font-weight: bold;
+    letter-spacing: 4px;
+    text-align: center;
+    padding: 8px 0;
+    color: var(--green);
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 4px;
+  }
+
+  /* STATUS CARD */
+  .status-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px;
+  }
+
+  .status-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 3px 0;
+    font-size: 13px;
+  }
+
+  .status-label { color: var(--text-dim); }
+  .status-value { font-weight: bold; font-family: Consolas, monospace; }
+
+  .indicator {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+  .indicator.on { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .indicator.off { background: var(--red); box-shadow: 0 0 6px var(--red); }
+
+  /* GM ALERT */
+  .gm-alert {
+    display: none;
+    background: rgba(255, 23, 68, 0.15);
+    border: 2px solid var(--red);
+    border-radius: 6px;
+    padding: 10px;
+    text-align: center;
+    animation: flashBorder 0.5s infinite alternate;
+  }
+
+  .gm-alert.active { display: block; }
+
+  .gm-alert-text {
+    color: var(--red);
+    font-size: 16px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+  }
+
+  @keyframes flashBorder {
+    from { border-color: var(--red); background: rgba(255,23,68,0.1); }
+    to   { border-color: var(--yellow); background: rgba(255,23,68,0.25); }
+  }
+
+  /* BUTTONS */
+  .btn-row {
+    display: flex;
+    gap: 8px;
+  }
+
+  .btn {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: filter 0.15s, transform 0.1s;
+  }
+
+  .btn:hover { filter: brightness(1.2); }
+  .btn:active { transform: scale(0.97); }
+
+  .btn-start {
+    background: var(--green);
+    color: #000;
+  }
+
+  .btn-stop {
+    background: var(--red);
+    color: #fff;
+  }
+
+  /* CONFIG */
+  .config-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px;
+  }
+
+  .config-row {
+    margin-bottom: 8px;
+  }
+
+  .config-row label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 2px;
+  }
+
+  .config-row label span {
+    color: var(--text);
+    font-family: Consolas, monospace;
+  }
+
+  input[type="range"] {
+    width: 100%;
+    -webkit-appearance: none;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    outline: none;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--blue);
+    cursor: pointer;
+  }
+
+  /* QUEUE LIST */
+  .queue-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px;
+    max-height: 140px;
+    overflow-y: auto;
+  }
+
+  .queue-item {
+    font-size: 12px;
+    padding: 3px 0;
+    font-family: Consolas, monospace;
+    color: var(--text-dim);
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+
+  .queue-item.current {
+    color: var(--orange);
+    font-weight: bold;
+  }
+
+  .queue-empty {
+    font-size: 12px;
+    color: var(--text-dim);
+    font-style: italic;
+    text-align: center;
+    padding: 8px;
+  }
+
+  /* LOG */
+  .log-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px;
+    flex: 1;
+    min-height: 100px;
+    overflow-y: auto;
+    font-family: Consolas, monospace;
+    font-size: 11px;
+    line-height: 1.5;
+  }
+
+  .log-line {
+    color: var(--text-dim);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* LEGEND */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    font-size: 11px;
+    color: var(--text-dim);
+    padding: 4px 0;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .legend-diamond {
+    width: 10px;
+    height: 10px;
+    transform: rotate(45deg);
+    flex-shrink: 0;
+  }
+
+  .legend-triangle {
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-bottom: 10px solid var(--yellow);
+    flex-shrink: 0;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <!-- LEFT PANEL: MINIMAP -->
+  <div class="left-panel">
+    <div class="map-header">
+      <h2>Minimap</h2>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div> Oyuncu</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--blue)"></div> Diger</div>
+        <div class="legend-item"><div class="legend-diamond" style="background:var(--red)"></div> Metin</div>
+        <div class="legend-item"><div class="legend-diamond" style="background:var(--magenta)"></div> Hedef</div>
+        <div class="legend-item"><div class="legend-diamond" style="background:var(--orange)"></div> Kuyruk</div>
+        <div class="legend-item"><div class="legend-triangle"></div> GM</div>
+      </div>
+      <div class="zoom-controls">
+        <button onclick="zoomLevel=Math.min(10,zoomLevel*1.3)">+</button>
+        <span id="zoomLabel">100%</span>
+        <button onclick="zoomLevel=Math.max(0.1,zoomLevel/1.3)">-</button>
+        <button onclick="zoomLevel=1.0" style="width:auto;padding:0 6px;font-size:11px">Reset</button>
+      </div>
+      <div class="map-coords" id="mapCoords">X: 0 | Y: 0</div>
+    </div>
+    <div class="canvas-wrap">
+      <canvas id="minimap"></canvas>
+      <div id="tooltip"></div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL: CONTROLS -->
+  <div class="right-panel">
+
+    <!-- Brand -->
+    <div class="brand-title">LIRIN BOT</div>
+
+    <!-- GM Alert -->
+    <div class="gm-alert" id="gmAlert">
+      <div class="gm-alert-text">GM Tespit Edildi!</div>
+    </div>
+
+    <!-- Status -->
+    <div class="panel-title">Oyuncu</div>
+    <div class="status-card" style="border-left:3px solid #00e676">
+      <div class="status-row">
+        <span class="status-label">Isim</span>
+        <span class="status-value" id="playerName" style="color:#00e676">-</span>
+      </div>
+      <div class="status-row">
+        <span class="status-label">Pozisyon</span>
+        <span class="status-value" id="playerPos" style="font-size:11px">-</span>
+      </div>
+      <div class="status-row">
+        <span class="status-label">VID</span>
+        <span class="status-value" id="playerVidDisplay" style="font-size:11px;color:var(--text-dim)">-</span>
+      </div>
+    </div>
+
+    <div class="panel-title">Bot Durumu</div>
+    <div class="status-card">
+      <div class="status-row">
+        <span class="status-label">Durum</span>
+        <span class="status-value" id="statusText">
+          <span class="indicator off" id="statusDot"></span>
+          <span id="statusLabel">DURDURULDU</span>
+        </span>
+      </div>
+      <div class="status-row">
+        <span class="status-label">Asama</span>
+        <span class="status-value" id="stateText">BEKLEMEDE</span>
+      </div>
+      <div class="status-row">
+        <span class="status-label">Oldurmeler</span>
+        <span class="status-value" id="killCount">0</span>
+      </div>
+      <div class="status-row">
+        <span class="status-label">Kuyruk</span>
+        <span class="status-value" id="totalQueued">0</span>
+      </div>
+      <div class="status-row">
+        <span class="status-label">Hedef</span>
+        <span class="status-value" id="currentTarget">Yok</span>
+      </div>
+    </div>
+
+    <!-- Buttons -->
+    <div class="btn-row">
+      <button class="btn btn-start" id="btnStart" onclick="postCommand('start')">Basla</button>
+      <button class="btn btn-stop" id="btnStop" onclick="postCommand('stop')">Dur</button>
+    </div>
+
+    <!-- Config -->
+    <div class="panel-title">Ayarlar</div>
+    <div class="config-card">
+      <div class="config-row">
+        <label>Menzil <span id="rangeVal">3000</span></label>
+        <input type="range" id="rangeSlider" min="500" max="5000" step="100" value="3000"
+               oninput="document.getElementById('rangeVal').textContent=this.value"
+               onchange="fetch('/api/range',{method:'POST',headers:{'Content-Type':'application/json'},body:this.value})">
+      </div>
+    </div>
+
+    <!-- Queue -->
+    <div class="panel-title">Kuyruk</div>
+    <div class="queue-card" id="queueList">
+      <div class="queue-empty">Bos</div>
+    </div>
+
+    <!-- Log -->
+    <div class="panel-title">Kayit</div>
+    <div class="log-card" id="logArea">
+      <div class="log-line">[ui] Veri bekleniyor...</div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+(function() {
+  // --- State ---
+  let state = null;
+  let hoveredEntity = null;
+  let animTime = 0;
+  let gmAlertActive = false;
+  let lastGmAlarm = 0;
+
+  // GM alarm sound using Web Audio API (no external files needed)
+  function gmAlarmPlay() {
+    lastGmAlarm = Date.now();
+    try {
+      var ac = new (window.AudioContext || window.webkitAudioContext)();
+      // Beep 1
+      var o1 = ac.createOscillator();
+      var g1 = ac.createGain();
+      o1.type = "square";
+      o1.frequency.value = 880;
+      g1.gain.value = 0.3;
+      o1.connect(g1); g1.connect(ac.destination);
+      o1.start(ac.currentTime);
+      o1.stop(ac.currentTime + 0.15);
+      // Beep 2
+      var o2 = ac.createOscillator();
+      var g2 = ac.createGain();
+      o2.type = "square";
+      o2.frequency.value = 1200;
+      g2.gain.value = 0.3;
+      o2.connect(g2); g2.connect(ac.destination);
+      o2.start(ac.currentTime + 0.2);
+      o2.stop(ac.currentTime + 0.35);
+      // Beep 3
+      var o3 = ac.createOscillator();
+      var g3 = ac.createGain();
+      o3.type = "square";
+      o3.frequency.value = 880;
+      g3.gain.value = 0.3;
+      o3.connect(g3); g3.connect(ac.destination);
+      o3.start(ac.currentTime + 0.4);
+      o3.stop(ac.currentTime + 0.55);
+      // Cleanup
+      setTimeout(function() { ac.close(); }, 1000);
+    } catch(e) {}
+  }
+
+  // --- Stable entity cache + interpolation for smooth minimap ---
+  // Entity'ler race condition nedeniyle bazi tick'lerde eksik gelebilir.
+  // Bir entity 5 tick ust uste gelmezse kaldir, yoksa koru.
+  var entityCache = {}; // vid -> {x, y, smoothX, smoothY, data, missCount}
+  var smoothPlayerX = 0, smoothPlayerY = 0;
+  var stableMergedEntities = []; // drawEntities bunu kullanir
+
+  function mergeEntities() {
+    if (!state || !state.entities) return;
+    var lerp = 0.25;
+    var MAX_MISS = 5; // 5 tick (2.5s) gorunmezse kaldir
+
+    // Smooth player position
+    if (smoothPlayerX === 0 && smoothPlayerY === 0) {
+      smoothPlayerX = state.playerX || 0;
+      smoothPlayerY = state.playerY || 0;
+    } else {
+      smoothPlayerX += ((state.playerX || 0) - smoothPlayerX) * lerp;
+      smoothPlayerY += ((state.playerY || 0) - smoothPlayerY) * lerp;
+    }
+
+    // Mark all as missed this tick
+    for (var vid in entityCache) {
+      entityCache[vid].seen = false;
+    }
+
+    // Update from incoming state
+    for (var i = 0; i < state.entities.length; i++) {
+      var e = state.entities[i];
+      if (!entityCache[e.vid]) {
+        entityCache[e.vid] = {
+          x: e.x, y: e.y, smoothX: e.x, smoothY: e.y,
+          data: e, missCount: 0, seen: true
+        };
+      } else {
+        var c = entityCache[e.vid];
+        c.x = e.x;
+        c.y = e.y;
+        c.data = e;
+        c.missCount = 0;
+        c.seen = true;
+        // Smooth interpolation
+        c.smoothX += (e.x - c.smoothX) * lerp;
+        c.smoothY += (e.y - c.smoothY) * lerp;
+      }
+    }
+
+    // Increment miss count for unseen, remove stale
+    for (var vid in entityCache) {
+      if (!entityCache[vid].seen) {
+        entityCache[vid].missCount++;
+        if (entityCache[vid].missCount > MAX_MISS) {
+          delete entityCache[vid];
+        }
+      }
+    }
+
+    // Build stable entity list for rendering
+    stableMergedEntities = [];
+    for (var vid in entityCache) {
+      var c = entityCache[vid];
+      // Use smooth position for rendering
+      var merged = {};
+      for (var k in c.data) merged[k] = c.data[k];
+      merged.x = c.smoothX;
+      merged.y = c.smoothY;
+      stableMergedEntities.push(merged);
+    }
+  }
+
+  var STATE_NAMES = {
+    0: "BEKLEMEDE",
+    1: "TARAMA",
+    2: "YAKLASMA",
+    3: "SALDIRI",
+    4: "TOPLAMA",
+    5: "BEKLEME"
+  };
+
+  // GM detection from entity data
+  function isGMEntity(entity) {
+    if (!entity) return false;
+    if (entity.isGM) return true;
+    var n = (entity.name || "").toLowerCase();
+    return n.indexOf("[gm]") >= 0 || n.indexOf("[ga]") >= 0 || n.indexOf("[sgm]") >= 0 || n.indexOf("gm ") === 0;
+  }
+
+  function isSelf(entity) {
+    if (!entity || !state) return false;
+    return state.playerVID && entity.vid === state.playerVID;
+  }
+
+  function isPlayer(entity) {
+    if (!entity) return false;
+    if (isSelf(entity)) return false;
+    if (entity.isMetin) return false;
+    if (isGMEntity(entity)) return false;
+    if (entity.isPlayer) return true;
+    return false;
+  }
+
+  // --- Canvas setup ---
+  var canvas = document.getElementById("minimap");
+  var ctx = canvas.getContext("2d");
+  var tooltip = document.getElementById("tooltip");
+  var canvasWrap = canvas.parentElement;
+
+  function resizeCanvas() {
+    canvas.width = canvasWrap.clientWidth;
+    canvas.height = canvasWrap.clientHeight;
+  }
+  window.addEventListener("resize", resizeCanvas);
+  resizeCanvas();
+
+  // --- Mouse tracking ---
+  var mouseX = -1, mouseY = -1;
+  canvas.addEventListener("mousemove", function(e) {
+    var rect = canvas.getBoundingClientRect();
+    mouseX = e.clientX - rect.left;
+    mouseY = e.clientY - rect.top;
+  });
+  canvas.addEventListener("mouseleave", function() {
+    mouseX = mouseY = -1;
+    tooltip.style.display = "none";
+  });
+
+  // --- Coordinate transform helpers ---
+  var viewCenterX = 0, viewCenterY = 0, viewScale = 1;
+  window.zoomLevel = 1.0; // user zoom multiplier (mouse wheel)
+
+  canvas.addEventListener("wheel", function(e) {
+    e.preventDefault();
+    if (e.deltaY < 0) window.zoomLevel *= 1.2;  // scroll up = zoom in
+    else window.zoomLevel /= 1.2;               // scroll down = zoom out
+    window.zoomLevel = Math.max(0.1, Math.min(10, window.zoomLevel));
+  }, { passive: false });
+
+  function worldToScreen(wx, wy) {
+    var sx = (wx - viewCenterX) * viewScale + canvas.width / 2;
+    var sy = (wy - viewCenterY) * viewScale + canvas.height / 2;
+    return [sx, sy];
+  }
+
+  // --- Drawing ---
+  function drawGrid() {
+    ctx.strokeStyle = "rgba(255,255,255,0.03)";
+    ctx.lineWidth = 1;
+    var gridWorld = 1000;
+    var gridScreen = gridWorld * viewScale;
+    if (gridScreen < 15) return;
+
+    var left = viewCenterX - canvas.width / 2 / viewScale;
+    var top = viewCenterY - canvas.height / 2 / viewScale;
+    var right = viewCenterX + canvas.width / 2 / viewScale;
+    var bottom = viewCenterY + canvas.height / 2 / viewScale;
+
+    var startX = Math.floor(left / gridWorld) * gridWorld;
+    var startY = Math.floor(top / gridWorld) * gridWorld;
+
+    ctx.beginPath();
+    for (var wx = startX; wx <= right; wx += gridWorld) {
+      var pos = worldToScreen(wx, 0);
+      ctx.moveTo(pos[0], 0);
+      ctx.lineTo(pos[0], canvas.height);
+    }
+    for (var wy = startY; wy <= bottom; wy += gridWorld) {
+      var pos2 = worldToScreen(0, wy);
+      ctx.moveTo(0, pos2[1]);
+      ctx.lineTo(canvas.width, pos2[1]);
+    }
+    ctx.stroke();
+  }
+
+  function drawNorthArrow() {
+    var ax = 30, ay = 30;
+    ctx.save();
+    ctx.translate(ax, ay);
+    ctx.beginPath();
+    ctx.moveTo(0, -15);
+    ctx.lineTo(-6, 8);
+    ctx.lineTo(0, 3);
+    ctx.lineTo(6, 8);
+    ctx.closePath();
+    ctx.fillStyle = "rgba(255,255,255,0.5)";
+    ctx.fill();
+    ctx.font = "bold 10px Consolas";
+    ctx.fillStyle = "rgba(255,255,255,0.6)";
+    ctx.textAlign = "center";
+    ctx.fillText("N", 0, -19);
+    ctx.restore();
+  }
+
+  function drawRangeCircle() {
+    if (!state) return;
+    var range = state.maxRange || parseInt(document.getElementById("rangeSlider").value) || 3000;
+    var pos = worldToScreen(state.playerX, state.playerY);
+    var r = range * viewScale;
+    ctx.beginPath();
+    ctx.arc(pos[0], pos[1], r, 0, Math.PI * 2);
+    ctx.strokeStyle = "rgba(255,255,255,0.08)";
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  function drawPlayer() {
+    if (!state) return;
+    var pos = worldToScreen(smoothPlayerX, smoothPlayerY);
+    var sx = pos[0], sy = pos[1];
+    // Outer glow
+    ctx.beginPath();
+    ctx.arc(sx, sy, 10, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(0, 230, 118, 0.15)";
+    ctx.fill();
+    // Circle
+    ctx.beginPath();
+    ctx.arc(sx, sy, 6, 0, Math.PI * 2);
+    ctx.fillStyle = "#00e676";
+    ctx.fill();
+    ctx.strokeStyle = "#fff";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+
+  function drawDiamond(sx, sy, size) {
+    ctx.beginPath();
+    ctx.moveTo(sx, sy - size);
+    ctx.lineTo(sx + size, sy);
+    ctx.lineTo(sx, sy + size);
+    ctx.lineTo(sx - size, sy);
+    ctx.closePath();
+  }
+
+  function drawTriangle(sx, sy, size) {
+    ctx.beginPath();
+    ctx.moveTo(sx, sy - size);
+    ctx.lineTo(sx - size * 0.8, sy + size * 0.6);
+    ctx.lineTo(sx + size * 0.8, sy + size * 0.6);
+    ctx.closePath();
+  }
+
+  function drawEntities() {
+    if (!state || !stableMergedEntities.length) return;
+    var pulse = Math.sin(animTime * 4) * 0.3 + 0.7; // 0.4 to 1.0
+    var closestEnt = null;
+    var closestDist = 20; // px threshold for hover
+
+    for (var i = 0; i < stableMergedEntities.length; i++) {
+      var ent = stableMergedEntities[i];
+      if (isSelf(ent)) continue; // drawn by drawPlayer()
+      // Sadece metin, player ve GM goster (moblari filtrele - minimap'i kirletmesin)
+      var inQueue = state.queue && state.queue.indexOf(ent.vid) >= 0;
+      if (!ent.isMetin && !isPlayer(ent) && !isGMEntity(ent) && !inQueue) continue;
+
+      var pos = worldToScreen(ent.x, ent.y);
+      var sx = pos[0], sy = pos[1];
+
+      // Skip if off screen
+      if (sx < -20 || sx > canvas.width + 20 || sy < -20 || sy > canvas.height + 20) continue;
+
+      // Check hover distance
+      if (mouseX >= 0 && mouseY >= 0) {
+        var d = Math.hypot(sx - mouseX, sy - mouseY);
+        if (d < closestDist) {
+          closestDist = d;
+          closestEnt = ent;
+        }
+      }
+
+      var isTarget = state.currentVID && ent.vid === state.currentVID;
+
+      // Target ring
+      if (isTarget) {
+        ctx.beginPath();
+        ctx.arc(sx, sy, 14, 0, Math.PI * 2);
+        ctx.strokeStyle = "rgba(255,255,255,0.7)";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+
+      if (isGMEntity(ent)) {
+        // GM: yellow triangle with flashing red border
+        drawTriangle(sx, sy, 8);
+        ctx.fillStyle = "#ffd600";
+        ctx.fill();
+        var flash = Math.sin(animTime * 8) > 0;
+        ctx.strokeStyle = flash ? "#ff1744" : "#ffd600";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        // Label
+        ctx.font = "bold 9px Consolas";
+        ctx.fillStyle = "#ffd600";
+        ctx.textAlign = "center";
+        ctx.fillText("GM", sx, sy + 16);
+      } else if (ent.isMetin) {
+        // Check if in queue
+        var inQueue = state.queue && state.queue.indexOf(ent.vid) >= 0;
+        var isCurrent = state.currentVID === ent.vid;
+        var size = 6 + pulse * 2;
+        drawDiamond(sx, sy, size);
+        if (isCurrent) {
+          // Magenta = current target
+          ctx.fillStyle = "rgba(224, 64, 251, " + pulse + ")";
+          ctx.strokeStyle = "#e040fb";
+        } else if (inQueue) {
+          // Orange = queued
+          ctx.fillStyle = "rgba(255, 145, 0, " + pulse + ")";
+          ctx.strokeStyle = "#ff9100";
+        } else {
+          // Red = not queued
+          ctx.fillStyle = "rgba(255, 23, 68, " + pulse + ")";
+          ctx.strokeStyle = "#ff1744";
+        }
+        ctx.fill();
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        // Glow
+        ctx.beginPath();
+        ctx.arc(sx, sy, size + 4, 0, Math.PI * 2);
+        ctx.fillStyle = isCurrent ? "rgba(224,64,251," + (pulse * 0.15) + ")" :
+                        inQueue ? "rgba(255,145,0," + (pulse * 0.1) + ")" :
+                        "rgba(255, 23, 68, " + (pulse * 0.1) + ")";
+        ctx.fill();
+      } else if (isPlayer(ent)) {
+        // Other player: blue dot
+        ctx.beginPath();
+        ctx.arc(sx, sy, 4, 0, Math.PI * 2);
+        ctx.fillStyle = "#448aff";
+        ctx.fill();
+      }
+    }
+
+    // Tooltip
+    hoveredEntity = closestEnt;
+    if (hoveredEntity) {
+      var label = hoveredEntity.name || ("VID " + hoveredEntity.vid);
+      if (hoveredEntity.isMetin) label += " [Metin]";
+      if (isGMEntity(hoveredEntity)) label += " [GM]";
+      label += " (" + Math.round(hoveredEntity.x) + ", " + Math.round(hoveredEntity.y) + ")";
+      label += " VID:" + hoveredEntity.vid;
+      tooltip.textContent = label;
+      tooltip.style.display = "block";
+      tooltip.style.left = (mouseX + 12) + "px";
+      tooltip.style.top = (mouseY - 20) + "px";
+    } else {
+      tooltip.style.display = "none";
+    }
+  }
+
+  function computeView() {
+    if (!state) return;
+
+    // Center on player always (smooth)
+    viewCenterX = smoothPlayerX || state.playerX || 0;
+    viewCenterY = smoothPlayerY || state.playerY || 0;
+
+    // Scale: maxRange * 2 cevresini goster (entity extent degil!)
+    var range = state.maxRange || parseInt(document.getElementById("rangeSlider").value) || 3000;
+    var viewRadius = range * 2.5; // range'in 2.5 kati gosterilsin
+    var pad = 1.1;
+
+    var scaleX = canvas.width / (viewRadius * 2 * pad);
+    var scaleY = canvas.height / (viewRadius * 2 * pad);
+    viewScale = Math.min(scaleX, scaleY) * window.zoomLevel;
+
+    // Clamp
+    if (viewScale > 2.0) viewScale = 2.0;
+    if (viewScale < 0.0001) viewScale = 0.0001;
+  }
+
+  function render(timestamp) {
+    animTime = timestamp / 1000;
+    resizeCanvas();
+
+    // Clear
+    ctx.fillStyle = "#1a1a2e";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    mergeEntities();
+    computeView();
+    drawGrid();
+    drawRangeCircle();
+    drawEntities();
+    drawPlayer();
+    drawNorthArrow();
+    document.getElementById("zoomLabel").textContent = Math.round(window.zoomLevel * 100) + "%";
+
+    requestAnimationFrame(render);
+  }
+
+  requestAnimationFrame(render);
+
+  // --- UI update ---
+  function updateUI() {
+    if (!state) return;
+
+    // Status
+    var dot = document.getElementById("statusDot");
+    var label = document.getElementById("statusLabel");
+    if (state.running) {
+      dot.className = "indicator on";
+      label.textContent = "CALISIYOR";
+      label.style.color = "#00e676";
+    } else {
+      dot.className = "indicator off";
+      label.textContent = "DURDURULDU";
+      label.style.color = "#ff1744";
+    }
+
+    // State
+    var stateNum = state.state || 0;
+    document.getElementById("stateText").textContent = STATE_NAMES[stateNum] || ("DURUM_" + stateNum);
+
+    // Stats
+    document.getElementById("killCount").textContent = state.kills || 0;
+
+    // Player info
+    document.getElementById("playerName").textContent = state.playerName || "Bilinmiyor";
+    document.getElementById("playerPos").textContent = Math.round(state.playerX || 0) + ", " + Math.round(state.playerY || 0);
+    document.getElementById("playerVidDisplay").textContent = state.playerVID || "-";
+
+    // Queue count
+    var queue = state.queue || [];
+    document.getElementById("totalQueued").textContent = queue.length;
+
+    // Current target
+    var curVID = state.currentVID || 0;
+    var targetName = "Yok";
+    if (curVID && state.entities) {
+      var te = null;
+      for (var i = 0; i < state.entities.length; i++) {
+        if (state.entities[i].vid === curVID) { te = state.entities[i]; break; }
+      }
+      targetName = te ? (te.name + " (" + curVID + ")") : ("VID " + curVID);
+    }
+    document.getElementById("currentTarget").textContent = targetName;
+
+    // Player coords
+    document.getElementById("mapCoords").textContent =
+      "X: " + Math.round(state.playerX || 0) + " | Y: " + Math.round(state.playerY || 0) + " | VID: " + (state.playerVID || 0);
+
+    // Sync range slider from server state
+    if (state.maxRange) {
+      var slider = document.getElementById("rangeSlider");
+      if (Math.abs(parseInt(slider.value) - state.maxRange) > 200) {
+        slider.value = state.maxRange;
+        document.getElementById("rangeVal").textContent = Math.round(state.maxRange);
+      }
+    }
+
+    // GM detection - use gmDetected field from API
+    var wasGM = gmAlertActive;
+    gmAlertActive = !!state.gmDetected;
+
+    // Also check entities for GM presence
+    if (!gmAlertActive && state.entities) {
+      for (var j = 0; j < state.entities.length; j++) {
+        if (isGMEntity(state.entities[j])) { gmAlertActive = true; break; }
+      }
+    }
+
+    var gmAlert = document.getElementById("gmAlert");
+    gmAlert.className = gmAlertActive ? "gm-alert active" : "gm-alert";
+
+    // GM sound alarm (plays when GM first detected, repeats every 3s while present)
+    if (gmAlertActive && !wasGM) gmAlarmPlay();
+    if (gmAlertActive) {
+      var now = Date.now();
+      if (now - lastGmAlarm > 3000) gmAlarmPlay();
+    }
+
+    // Queue display
+    var queueDiv = document.getElementById("queueList");
+    if (queue.length === 0) {
+      queueDiv.innerHTML = '<div class="queue-empty">Bos</div>';
+    } else {
+      var html = "";
+      for (var k = 0; k < queue.length; k++) {
+        var vid = queue[k];
+        var ent = null;
+        if (state.entities) {
+          for (var m = 0; m < state.entities.length; m++) {
+            if (state.entities[m].vid === vid) { ent = state.entities[m]; break; }
+          }
+        }
+        var name = ent ? ent.name : "Olduruluyor...";
+        var isCur = vid === curVID;
+        var style = ent ? '' : ' style="opacity:0.4"';
+        html += '<div class="queue-item' + (isCur ? ' current' : '') + '"' + style + '>' +
+                (isCur ? '> ' : '  ') + (ent ? escapeHtml(name) : 'VID ' + vid + ' - ' + name) + '</div>';
+      }
+      queueDiv.innerHTML = html;
+    }
+
+    // Log - show last 20 entries
+    var logDiv = document.getElementById("logArea");
+    var logs = state.log || [];
+    if (logs.length === 0) {
+      logDiv.innerHTML = '<div class="log-line">[ui] Kayit yok.</div>';
+    } else {
+      var last = logs.slice(-20);
+      var logHtml = "";
+      for (var n = 0; n < last.length; n++) {
+        logHtml += '<div class="log-line">' + escapeHtml(last[n]) + '</div>';
+      }
+      logDiv.innerHTML = logHtml;
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
+  }
+
+  function escapeHtml(str) {
+    return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  // --- API ---
+  function fetchState() {
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET", "/api/state", true);
+    xhr.timeout = 2000;
+    xhr.onreadystatechange = function() {
+      if (xhr.readyState === 4 && xhr.status === 200) {
+        try {
+          state = JSON.parse(xhr.responseText);
+          updateUI();
+        } catch(e) {}
+      }
+    };
+    xhr.onerror = function() {};
+    xhr.ontimeout = function() {};
+    xhr.send();
+  }
+
+  window.postCommand = function(cmd) {
+    try {
+      var xhr = new XMLHttpRequest();
+      xhr.open("POST", "/api/" + cmd, true);
+      xhr.send();
+    } catch (e) {
+      console.error("Command failed:", e);
+    }
+  };
+
+  // Poll every 500ms
+  setInterval(fetchState, 500);
+  fetchState();
+})();
+</script>
+
+</body>
+</html>
