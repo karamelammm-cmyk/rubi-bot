@@ -9,6 +9,25 @@ set "CLIENT_DIR=%SCRIPT_DIR%"
 set "UI_DIR=%SCRIPT_DIR%ui"
 set "LOCAL_VER_FILE=%SCRIPT_DIR%lirin_version_local.txt"
 set "GAME_EXE=Lirin.exe"
+set "SELF=%~f0"
+
+:: ==========================================
+:: SELF-UPDATE: patcher kendini gunceller
+:: ==========================================
+if "%1"=="--updated" goto :SKIP_SELF_UPDATE
+curl -s -L -o "%TEMP%\lirin_patcher_new.bat" "%REPO_BASE%/lirin_patcher.bat" 2>nul
+if exist "%TEMP%\lirin_patcher_new.bat" (
+    fc /b "%SELF%" "%TEMP%\lirin_patcher_new.bat" >nul 2>&1
+    if errorlevel 1 (
+        copy /Y "%TEMP%\lirin_patcher_new.bat" "%SELF%" >nul 2>&1
+        del /F "%TEMP%\lirin_patcher_new.bat" >nul 2>&1
+        echo [*] Patcher updated. Restarting...
+        start "" cmd /c ""%SELF%" --updated"
+        exit /b 0
+    )
+    del /F "%TEMP%\lirin_patcher_new.bat" >nul 2>&1
+)
+:SKIP_SELF_UPDATE
 
 echo ===================================
 echo        LIRIN PATCHER v1.0
