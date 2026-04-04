@@ -5,7 +5,7 @@ color 0A
 
 set "REPO_BASE=https://raw.githubusercontent.com/karamelammm-cmyk/rubi-bot/main"
 set "SCRIPT_DIR=%~dp0"
-set "CLIENT_DIR=%SCRIPT_DIR%client"
+set "CLIENT_DIR=%SCRIPT_DIR%"
 set "UI_DIR=%SCRIPT_DIR%ui"
 set "LOCAL_VER_FILE=%SCRIPT_DIR%lirin_version_local.txt"
 set "GAME_EXE=Lirin.exe"
