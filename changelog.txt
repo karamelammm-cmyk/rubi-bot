@@ -1,3 +1,10 @@
+[v3]
+- Fixed UI path: works from any install directory
+- Fixed UI filename (lirin_ui.py)
+- Pickup now triggers only after kills (5 seconds)
+- Reduced false kill detections
+- charType detection scan for player/GM
+
 [v2]
 - Default range increased to 3000
 - Auto UI launch when game starts
