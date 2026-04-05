@@ -1,3 +1,12 @@
+[v4]
+- Fixed pickup: continuous pickup every second
+- Fixed UI port: each client gets unique port (PID-based)
+- Player detection on minimap (charType offset fixed)
+- GM detection: name list + invisible player check
+- Case-insensitive name matching
+- 18 known GM names added
+- Default range increased to 3000
+
 [v3]
 - Fixed UI path: works from any install directory
 - Fixed UI filename (lirin_ui.py)
