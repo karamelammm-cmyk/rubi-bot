@@ -466,6 +466,29 @@
       <button class="btn btn-stop" id="btnStop" onclick="postCommand('stop')">Dur</button>
     </div>
 
+    <!-- Fishing -->
+    <div class="panel-title">Fishing</div>
+    <div class="config-card">
+      <div class="status-row">
+        <span class="status-label">Status</span>
+        <span class="status-value" id="fishStatus" style="color:#888">Off</span>
+      </div>
+      <div class="btn-row" style="margin-top:6px">
+        <button class="btn" style="background:#448aff;flex:1" onclick="postCommand('fish_capture')">Capture</button>
+        <button class="btn" style="background:#ff9100;flex:1" onclick="postCommand('fish_done')">Done</button>
+      </div>
+      <div class="btn-row" style="margin-top:4px">
+        <button class="btn btn-start" style="flex:1" onclick="postCommand('fish_start')">Scan</button>
+        <button class="btn" style="background:#448aff;flex:1" onclick="postCommand('fish_watch')">Watch</button>
+        <button class="btn btn-stop" style="flex:1" onclick="postCommand('fish_stop')">Stop</button>
+      </div>
+      <div id="fishBar" style="display:none;margin-top:8px;position:relative;height:24px;background:#222;border:1px solid #444;border-radius:4px;overflow:hidden">
+        <div id="fishZone" style="position:absolute;height:100%;background:rgba(0,230,118,0.3);border:1px solid #00e676"></div>
+        <div id="fishDot" style="position:absolute;top:2px;width:8px;height:20px;background:#ff1744;border-radius:3px"></div>
+        <span id="fishLabel" style="position:absolute;right:4px;top:3px;font-size:10px;color:#888"></span>
+      </div>
+    </div>
+
     <!-- Config -->
     <div class="panel-title">Settings</div>
     <div class="config-card">
@@ -989,6 +1012,32 @@
       }
     }
 
+    // Fishing status + bar
+    var fishEl = document.getElementById("fishStatus");
+    var fishBar = document.getElementById("fishBar");
+    if (state.fishing) {
+      fishEl.textContent = "Active";
+      fishEl.style.color = "#00e676";
+      fishBar.style.display = "block";
+      var barW = fishBar.offsetWidth;
+      var maxVal = 800;
+      // Fish dot
+      var dotPct = Math.max(0, Math.min(1, (state.fishX || 0) / maxVal));
+      document.getElementById("fishDot").style.left = (dotPct * (barW - 8)) + "px";
+      // Green zone
+      var lPct = Math.max(0, (state.fishL || 0) / maxVal);
+      var rPct = Math.min(1, (state.fishR || 0) / maxVal);
+      var zone = document.getElementById("fishZone");
+      zone.style.left = (lPct * barW) + "px";
+      zone.style.width = ((rPct - lPct) * barW) + "px";
+      // Label
+      document.getElementById("fishLabel").textContent = "X:" + (state.fishX||0) + " [" + (state.fishL||0) + "-" + (state.fishR||0) + "]";
+    } else {
+      fishEl.textContent = "Off";
+      fishEl.style.color = "#888";
+      fishBar.style.display = "none";
+    }
+
     // GM detection - use gmDetected field from API
     var wasGM = gmAlertActive;
     gmAlertActive = !!state.gmDetected;
@@ -1082,7 +1131,7 @@
   };
 
   // Poll every 500ms
-  setInterval(fetchState, 500);
+  setInterval(fetchState, 50);
   fetchState();
 })();
 </script>

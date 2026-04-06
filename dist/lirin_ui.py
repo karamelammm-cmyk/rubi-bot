@@ -100,6 +100,16 @@ class BotAPIHandler(http.server.BaseHTTPRequestHandler):
             length = int(self.headers.get("Content-Length", 0))
             body = self.rfile.read(length).decode() if length else "3000"
             self._handle_range(body.strip())
+        elif self.path == "/api/fish_capture":
+            self._handle_command("fish_capture")
+        elif self.path == "/api/fish_done":
+            self._handle_command("fish_done")
+        elif self.path == "/api/fish_watch":
+            self._handle_command("fish_watch")
+        elif self.path == "/api/fish_start":
+            self._handle_command("fish_start")
+        elif self.path == "/api/fish_stop":
+            self._handle_command("fish_stop")
         else:
             self.send_error(404, "Not found")
 
@@ -238,8 +248,23 @@ def wait_for_f3_selection(instances):
             print(f"  ({len(instances)} instance bulundu)")
 
 
+class NoReuseHTTPServer(http.server.HTTPServer):
+    allow_reuse_address = False
+
 def start_server():
-    server = http.server.HTTPServer(("0.0.0.0", PORT), BotAPIHandler)
+    global PORT
+    # Port 0 ise veya dolu ise bos port bul
+    server = None
+    for p in range(5561, 5580):
+        try:
+            server = NoReuseHTTPServer(("0.0.0.0", p), BotAPIHandler)
+            PORT = p
+            break
+        except OSError:
+            continue
+    if not server:
+        print("[!] No free port found (5560-5580)")
+        return
     print(f"\n=== Lirin Bot UI ===")
     print(f"http://localhost:{PORT}")
     print(f"State: {STATE_FILE}")
