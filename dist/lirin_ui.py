@@ -2,8 +2,8 @@
 Lirin Bot - Web UI Server
 Supports multiple clients with per-PID state files.
 Usage: python bot_ui.py [port] [state_file] [cmd_file]
-       python bot_ui.py              -> auto-detect from C:\\lirin_bot_state_*.json
-       python bot_ui.py 5555 C:\\lirin_bot_state_12345.json C:\\lirin_bot_cmd_12345.json
+       python bot_ui.py              -> auto-detect from C:\\vstate_*.json
+       python bot_ui.py 5555 C:\\vstate_12345.json C:\\vcmd_12345.json
 """
 
 import http.server
@@ -24,18 +24,18 @@ PORT = 5555
 def find_state_files():
     """Find all bot state files and return list of (pid, port, state_file, cmd_file)."""
     instances = []
-    for f in glob.glob(r"C:\lirin_bot_state_*.json"):
+    for f in glob.glob(r"C:\vstate_*.json"):
         try:
             pid = f.split("_")[-1].replace(".json", "")
             with open(f, "r") as fh:
                 data = json.load(fh)
             port = data.get("port", 5555)
-            cmd = f.replace("_state_", "_cmd_")
+            cmd = f.replace("vstate_", "vcmd_")
             instances.append((pid, port, f, cmd))
         except:
             pass
     # Also check default format
-    old = r"C:\lirin_bot_state.json"
+    old = r"C:\vstate.json"
     if os.path.isfile(old) and not any(i[2] == old for i in instances):
         try:
             with open(old, "r") as fh:
@@ -43,7 +43,7 @@ def find_state_files():
             port = data.get("port", 5555)
         except:
             port = 5555
-        instances.append(("?", port, old, r"C:\lirin_bot_cmd.json"))
+        instances.append(("?", port, old, r"C:\vcmd.json"))
     return instances
 
 
@@ -203,7 +203,7 @@ def wait_for_f3_selection(instances):
     global STATE_FILE, CMD_FILE, PORT
     import time
 
-    select_file = r"C:\lirin_bot_selected.txt"
+    select_file = r"C:\vsel.txt"
 
     print("Multiple bot instances found:")
     for pid, port, sf, cf in instances:
@@ -234,8 +234,8 @@ def wait_for_f3_selection(instances):
                         return
                 # PID bulunamadi, yeni instance olabilir - dosyalardan oku
                 PORT = 5555 + (int(selected_pid) % 100)
-                STATE_FILE = rf"C:\lirin_bot_state_{selected_pid}.json"
-                CMD_FILE = rf"C:\lirin_bot_cmd_{selected_pid}.json"
+                STATE_FILE = rf"C:\vstate_{selected_pid}.json"
+                CMD_FILE = rf"C:\vcmd_{selected_pid}.json"
                 print(f"\nF3 ile secildi: PID {selected_pid} port {PORT}")
                 return
             except Exception:
