@@ -1,3 +1,15 @@
+[v5]
+- Pickup toggle: overlay button + config (default OFF)
+- Queue delay: stones added one at a time with 500ms gap
+- Queue display in overlay (live metin names)
+- Hooked MetinQueueAdd/Clear: overlay shows game's real queue
+- Manual clicks and bot share the same queue system
+- Player list in overlay (nearby player names)
+- GM names shown in overlay alert
+- Thread-safe queue operations (spinlock)
+- Auto queue cleanup: dead stones removed automatically
+- Fixed crash: VirtualAlloc trampoline + instruction length decoder
+
 [v4]
 - Fixed pickup: continuous pickup every second
 - Fixed UI port: each client gets unique port (PID-based)
