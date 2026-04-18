@@ -1,0 +1,13 @@
+[v1]
+- Initial release
+- VERSION.dll proxy bot with in-game GDI overlay
+- Auto metin queue management (3-slot refill when queue drops to 1)
+- Farm radius adjustable from panel (+/- buttons, presets 1000-10000)
+- Farm center locked at bot start position (current character pos)
+- 2D minimap: shows radius circle, player, stones color-coded by range and queue
+- Multi-client safe: per-PID IPC files (ents_<pid>.txt, vids_<pid>.txt)
+- Hotkeys only react when game window is in foreground
+- INSERT=bot on/off, DELETE=overlay show/hide, HOME=autohunt diag, END=autohunt toggle
+- Python captcha detection pipeline (external OCR solver required)
+- Pickup toggle, filter editor, GM detection alert
+- Kill detection via entity disappearance + game queue force-pop (v49 doesn't auto-pop)
