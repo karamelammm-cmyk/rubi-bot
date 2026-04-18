@@ -1,3 +1,7 @@
+[v3]
+- Remove SCAN button — entity scan auto-triggers when bot is activated
+- Fix: 3D world ring disabled (was corrupting game's terrain/map rendering via D3D state pollution). Radius visible only on 2D minimap.
+
 [v2]
 - Fix: overlay missing when game launched via patcher (infinite wait for game window, was 30s timeout)
 
