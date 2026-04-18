@@ -1,3 +1,6 @@
+[v2]
+- Fix: overlay missing when game launched via patcher (infinite wait for game window, was 30s timeout)
+
 [v1]
 - Initial release
 - VERSION.dll proxy bot with in-game GDI overlay
