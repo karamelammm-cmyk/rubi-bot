@@ -1,3 +1,10 @@
+[v4]
+- Captcha auto-solve with Gemini 2.5 Flash vision (~2s solve time)
+- Patcher auto-installs deps, auto-launches background solver, downloads captcha_solver.py
+- Gemini API key required at C:\ProgramData\mdata\gemini_key.txt (free from aistudio.google.com)
+- Bot captcha check every tick (300ms) for faster answer pickup
+- Solver uses smart cropping (sends only the captcha region, not full screenshot)
+
 [v3]
 - Remove SCAN button — entity scan auto-triggers when bot is activated
 - Fix: 3D world ring disabled (was corrupting game's terrain/map rendering via D3D state pollution). Radius visible only on 2D minimap.
@@ -15,6 +22,5 @@
 - Multi-client safe: per-PID IPC files (ents_<pid>.txt, vids_<pid>.txt)
 - Hotkeys only react when game window is in foreground
 - INSERT=bot on/off, DELETE=overlay show/hide, HOME=autohunt diag, END=autohunt toggle
-- Python captcha detection pipeline (external OCR solver required)
 - Pickup toggle, filter editor, GM detection alert
 - Kill detection via entity disappearance + game queue force-pop (v49 doesn't auto-pop)
